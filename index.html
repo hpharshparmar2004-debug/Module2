@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Module 2</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #c3a9f5, #e6d7ff);
+    margin: 0;
+    padding: 0;
+}
+/* ---------- LOGIN PAGE ---------- */
+#loginPage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+}
+.login-box {
+    background: rgba(255,255,255,0.25);
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    padding: 30px;
+    width: 90%;
+    max-width: 350px;
+    text-align: center;
+}
+.login-box h2 {
+    margin-bottom: 20px;
+    color: #4b0082;
+}
+.login-box input {
+    width: 90%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+.login-box button {
+    width: 95%;
+    padding: 12px;
+    background-color: #7a4de0;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.login-box button:hover {
+    background-color: #5e35b1;
+}
+.error {
+    color: red;
+    margin-top: 10px;
+}
+/* ---------- EXAM PAGE ---------- */
+#examPage {
+    display: none;
+    padding: 10px;
+    max-width: 900px;
+    margin: auto;
+}
+h1 {
+    text-align: center;
+    color: #4b0082;
+    font-size: 1.5em;
+}
+.timer {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #4b0082;
+}
+.question-box {
+    background: rgba(255,255,255,0.85);
+    padding: 15px;
+    border-radius: 15px;
+    margin-top: 15px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
+}
+.question-box p {
+    font-size: 1em;
+}
+label {
+    font-size: 0.95em;
+}
+button {
+    padding: 10px 12px;
+    margin: 8px 4px;
+    border: none;
+    background: #7a4de0;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+button:hover { background: #5e35b1; }
+/* ---------- CIRCLES ---------- */
+.nav-container {
+    display: flex;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 5px 0;
+    margin-top: 10px;
+}
+.circle {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    border-radius: 50%;
+    background-color: red;
+    color: white;
+    text-align: center;
+    margin: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.circle.attempted { background-color: green; }
+.disabled { pointer-events: none; opacity: 0.6; }
+/* ---------- RESULT PAGE ---------- */
+#resultPage {
+    display: none;
+    height: 100vh;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #4b0082;
+}
+#resultPage h2 {
+    font-size: 26px;
+    margin-bottom: 10px;
+}
+#resultPage p {
+    font-size: 20px;
+    margin: 6px 0;
+}
+/* ---------- RESPONSIVE ---------- */
+@media screen and (max-width: 600px){
+    .question-box { font-size: 0.95em; padding: 12px; }
+    button { font-size: 12px; padding: 8px 10px; }
+    .circle { width: 25px; height: 25px; line-height: 25px; font-size: 12px; margin: 3px; }
+    .timer { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+    <div class="login-box">
+        <h2>Module 2</h2>
+        <input type="text" id="username" placeholder="username">
+        <input type="password" id="password" placeholder="password">
+        <button onclick="validateLogin()">Login</button>
+        <p id="errorMsg" class="error"></p>
+    </div>
+</div>
+<!-- EXAM PAGE -->
+<div id="examPage">
+    <h1>Module 2</h1>
+    <p><strong>Student:</strong> <span id="studentName"></span></p>
+    <div class="timer" id="timer">60:00</div>
+    <div class="question-box" id="questionBox"></div>
+    <div class="nav-container" id="navCircles"></div>
+    <div style="text-align:center;">
+        <button id="prevBtn" onclick="prevQuestion()">Previous</button>
+        <button id="nextBtn" onclick="nextQuestion()">Save & Next</button>
+        <button id="submitBtn" onclick="submitExam()">Submit Exam</button>
+    </div>
+</div>
+<!-- RESULT PAGE -->
+<div id="resultPage" style="display:none;">
+    <h2>Your Exam Has Been Submitted</h2>
+    <p><strong>Student:</strong> <span id="resultName"></span></p>
+    <p>✅ Correct Answers: <span id="correctCount"></span></p>
+    <p>❌ Wrong Answers: <span id="wrongCount"></span></p>
+    <p>📊 Score Percentage: <span id="scorePercent"></span>%</p>
+</div>
+<script>
+// Prevent F5 / Ctrl+R refresh
+let submitted = false;
+document.addEventListener("keydown", e=>{
+    if(e.key === "F5" || (e.ctrlKey && e.key === "r")) e.preventDefault();
+});
+window.onbeforeunload = ()=>{ if(!submitted) return "Are you sure?"; };
+// ---------------- LOGIN ----------------
+function validateLogin(){
+    const username = document.getElementById("username").value.trim().toLowerCase();
+    const password = document.getElementById("password").value.trim();
+    const pattern = /^rgcsm(\d{3})$/;
+    const match = username.match(pattern);
+    if(match && match[1] === password){
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("examPage").style.display = "block";
+        document.getElementById("studentName").innerText = username;
+        renderCircles();
+        loadQuestion();
+        startTimer();
+    } else {
+        document.getElementById("errorMsg").textContent = "Invalid Login!";
+    }
+}
+// ---------------- MODULE 2 QUESTIONS (HTML, CSS, Frameworks, JavaScript) ----------------
+const questions = [
+{ q: "1. Which tag defines a hyperlink in HTML?", options: ["&lt;img&gt;","&lt;meta&gt;","&lt;a&gt;","&lt;div&gt;"] },
+{ q: "2. The attribute used to set the background color of a web page is", options: ["bgcolor","background","style","bg"] },
+{ q: "3. In HTML, headings range from", options: ["&lt;h1&gt; to &lt;h5&gt;","&lt;h2&gt; to &lt;h7&gt;","&lt;h0&gt; to &lt;h5&gt;","&lt;h1&gt; to &lt;h6&gt;"] },
+{ q: "4. The correct HTML tag for inserting a line break is", options: ["&lt;br&gt;","&lt;br /&gt;","&lt;lb&gt;","&lt;break&gt;"] },
+{ q: "5. CSS stands for", options: ["Colorful Style Sheets","Computer Style Sheets","Creative Style Sheets","Cascading Style Sheets"] },
+{ q: "6. Which property controls text size in CSS?", options: ["font","font-size","text-size","size"] },
+{ q: "7. JavaScript is a", options: ["Server-side language","Client-side scripting language","Database language","Markup language"] },
+{ q: "8. Which tag is used to define a table row?", options: ["&lt;td&gt;","&lt;tc&gt;","&lt;tr&gt;","&lt;table&gt;"] },
+{ q: "9. The HTML tag used to display an image is", options: ["&lt;pic&gt;","&lt;graphics&gt;","&lt;img&gt;","&lt;src&gt;"] },
+{ q: "10. The attribute used in &lt;img&gt; to specify the image file is", options: ["file","src","href","alt"] },
+{ q: "11. A webpage saved on local computer usually has extension", options: [".doc",".pdf",".html",".exe"] },
+{ q: "12. The CSS property to change text color is", options: ["bgcolor","color","font-color","text-style"] },
+{ q: "13. HTML lists can be", options: ["Ordered","Unordered","Both a and b","None"] },
+{ q: "14. The tag used to define a form is", options: ["&lt;input&gt;","&lt;form&gt;","&lt;submit&gt;","&lt;div&gt;"] },
+{ q: "15. Which tag is used to define the largest heading?", options: ["&lt;h2&gt;","&lt;h1&gt;","&lt;h6&gt;","&lt;head&gt;"] },
+{ q: "16. The extension of a Cascading Style Sheet is", options: [".html",".js",".htm",".css"] },
+{ q: "17. Which HTML element is used to specify a footer?", options: ["&lt;bottom&gt;","&lt;footer&gt;","&lt;end&gt;","&lt;down&gt;"] },
+{ q: "18. In HTML, &lt;ol&gt; tag is used for", options: ["Ordered list","Unordered list","Definition list","Link list"] },
+{ q: "19. The default alignment of text in HTML is", options: ["Center","Right","Left","Justify"] },
+{ q: "20. The HTML element used to specify a title for a web page is", options: ["&lt;h1&gt;","&lt;head&gt;","&lt;title&gt;","&lt;meta&gt;"] },
+{ q: "21. The first page of a website is called", options: ["Index page","Home page","Welcome page","Root page"] },
+{ q: "22. HTML comment syntax is", options: ["// comment","# comment","&lt;!-- comment --&gt;","/* comment */"] },
+{ q: "23. CSS can be applied using", options: ["Inline","Internal","External","All of these"] },
+{ q: "24. Which attribute opens link in new tab?", options: ["target=“_blank”","target=\"_blank\"","new=“tab”","ref=“new”"] },
+{ q: "25. JavaScript variables are declared using", options: ["define","var","int","decl"] },
+{ q: "26. Which HTML tag displays text in italic?", options: ["&lt;b&gt;","&lt;u&gt;","&lt;i&gt;","&lt;em&gt;"] },
+{ q: "27. HTML is a", options: ["Programming language","Database","Markup language","Operating system"] },
+{ q: "28. Which of these tags defines a hyperlink target?", options: ["href","target","link","path"] },
+{ q: "29. The &lt;table&gt; tag in HTML is closed with", options: ["&lt;/table&gt;","&lt;/tab&gt;","&lt;/tbl&gt;","&lt;/tb&gt;"] },
+{ q: "30. CSS property for background image is", options: ["img-url","bg-url","background-image","background-src"] },
+{ q: "31. JavaScript function is declared using", options: ["function","def","declare","void"] },
+{ q: "32. A favicon is displayed in", options: ["Browser tab","Page body","Heading","Footer"] },
+{ q: "33. HTML tag for inserting horizontal line is", options: ["&lt;hr&gt;","&lt;line&gt;","&lt;hline&gt;","&lt;break&gt;"] },
+{ q: "34. The CSS property for bold text is", options: ["text-weight","font-weight","style-bold","font-bold"] },
+{ q: "35. Which tag contains all metadata in HTML?", options: ["body","head","title","html"] },
+{ q: "36. Which attribute adds tooltip text?", options: ["tip","name","text","title"] },
+{ q: "37. The default protocol used by websites is", options: ["ftp","smtp","http","pop"] },
+{ q: "38. The extension of a JavaScript file is", options: [".java",".html",".js",".css"] },
+{ q: "39. The HTML tag used to define a checkbox is", options: ["&lt;button&gt;","&lt;check&gt;","&lt;input type=\"checkbox\"&gt;","&lt;cb&gt;"] },
+{ q: "40. Which color model is used in web designing?", options: ["CMYK","RGB","RYB","HSV"] },
+{ q: "41. HTML form method that hides data in URL is", options: ["POST","GET","SEND","LINK"] },
+{ q: "42. HTML form elements include", options: ["Input","Select","Textarea","All of these"] },
+{ q: "43. Which HTML tag defines the document body?", options: ["&lt;main&gt;","&lt;div&gt;","&lt;body&gt;","&lt;page&gt;"] },
+{ q: "44. The CSS property for underlining text is", options: ["text-decoration","font-style","underline","text-align"] },
+{ q: "45. HTML tag for ordered list is", options: ["&lt;ul&gt;","&lt;li&gt;","&lt;ol&gt;","&lt;list&gt;"] },
+{ q: "46. The default alignment for an image is", options: ["Inline","Left","Center","Top"] },
+{ q: "47. The tag to add a row in a table is", options: ["&lt;td&gt;","&lt;tr&gt;","&lt;tb&gt;","&lt;table&gt;"] },
+{ q: "48. CSS can be linked in HTML using", options: ["&lt;script&gt;","&lt;link&gt;","&lt;meta&gt;","&lt;style&gt;"] },
+{ q: "49. In HTML, the &lt;meta&gt; tag is used for", options: ["Search engine data","Links","Images","Text"] },
+{ q: "50. The closing tag of paragraph element is", options: ["&lt;para&gt;","&lt;pg&gt;","&lt;/p&gt;","&lt;/para&gt;"] },
+{ q: "51. The CSS property used to center text is", options: ["align","text-align","font-align","justify"] },
+{ q: "52. The unit “em” in CSS refers to", options: ["Relative to current font size","Pixels","Inches","Percentage"] },
+{ q: "53. Which CSS property controls the spacing between lines of text?", options: ["letter-spacing","line-height","word-space","text-gap"] },
+{ q: "54. External CSS is linked using", options: ["&lt;script&gt;","&lt;link&gt;","&lt;meta&gt;","&lt;style&gt;"] },
+{ q: "55. In CSS, ID selectors begin with", options: [".","&","%","#"] },
+{ q: "56. The correct syntax for a comment in CSS is", options: ["/* comment */","// comment","<!-- comment -->","# comment"] },
+{ q: "57. The CSS property used to make text italic is", options: ["font-style: italic;","text-italic: true;","style: italic;","italicize: yes;"] },
+{ q: "58. The default value of the position property in CSS is", options: ["fixed","relative","absolute","static"] },
+{ q: "59. Which CSS property adds space inside an element?", options: ["margin","padding","border","spacing"] },
+{ q: "60. The property used to hide an element is", options: ["display: none;","hide: true;","visible: no;","opacity: 0;"] },
+{ q: "61. Which property controls element transparency?", options: ["filter","opacity","alpha","visibility"] },
+{ q: "62. The z-index property in CSS affects", options: ["Stack order","Font weight","Margin","Width"] },
+{ q: "63. Which tag is used to embed internal CSS?", options: ["script","meta","style","link"] },
+{ q: "64. CSS property to control element border width is", options: ["border-size","border-width","line-width","border-stroke"] },
+{ q: "65. The “hover” effect in CSS uses a", options: ["class","id","pseudo-class","attribute"] },
+{ q: "66. The property that sets the background image repeat style is", options: ["background-style","background-repeat","bg-mode","img-loop"] },
+{ q: "67. CSS property for changing font type is", options: ["font-family","font-type","text-font","type-face"] },
+{ q: "68. The property “float” is used for", options: ["Text color","Element positioning","Font style","Background"] },
+{ q: "69. To make an element circular, use", options: ["shape: circle;","round-corner: 100%;","border-radius: 50%;","radius-set: 1;"] },
+{ q: "70. CSS Grid is used for", options: ["Two-dimensional layout","Animation","Typography","Transition"] },
+{ q: "71. Bootstrap is a", options: ["Programming language","CSS framework","Database","Browser"] },
+{ q: "72. The default Bootstrap grid is divided into", options: ["6 columns","12 columns","8 columns","16 columns"] },
+{ q: "73. Bootstrap buttons use which class prefix?", options: ["btns","btn","button-set","bts"] },
+{ q: "74. The Bootstrap container class is written as", options: ["box","div-main","container","wrapper"] },
+{ q: "75. In Bootstrap, text can be centered with", options: ["center-text","text-center","align-middle","txt-mid"] },
+{ q: "76. JavaScript keyword to declare a constant is", options: ["var","const","fixed","let"] },
+{ q: "77. JavaScript output can be displayed using", options: ["print()","document.text()","document.write()","msg()"] },
+{ q: "78. Which symbol is used for single-line comment in JavaScript?", options: ["//","/*","<!--","#"] },
+{ q: "79. JavaScript arrays are defined using", options: ["{}","()", "[]","<>"] },
+{ q: "80. Which function displays an alert box?", options: ["alert()","show()","notify()","message()"] },
+{ q: "81. JavaScript variables are case sensitive?", options: ["Yes","No","Sometimes","Never"] },
+{ q: "82. The keyword used to define a function in JavaScript is", options: ["define","function","fun","fn"] },
+{ q: "83. Which operator is used to compare both value and type?", options: ["==","===","!=","=>"] },
+{ q: "84. JavaScript function to get element by ID is", options: ["getElement()","document.getElementById()","id()","select()"] },
+{ q: "85. To convert a string to integer, use", options: ["Number()","valueOf()","parseInt()","toInt()"] },
+{ q: "86. Which method adds an element at the end of an array?", options: ["add()","push()","insert()","append()"] },
+{ q: "87. Which event occurs when a user clicks a button?", options: ["change","load","onclick","hover"] },
+{ q: "88. JavaScript statement ends with a", options: [",",":",";","."] },
+{ q: "89. Which object is the top-level in the browser hierarchy?", options: ["document","window","screen","body"] },
+{ q: "90. JavaScript is interpreted by a", options: ["Compiler","Browser","Server","Assembler"] },
+{ q: "91. The “this” keyword refers to", options: ["Parent class","Current object","Global variable","None"] },
+{ q: "92. JavaScript operator “+” can be used for", options: ["Addition only","Addition and concatenation","Concatenation only","Subtraction"] },
+{ q: "93. DOM stands for", options: ["Document Oriented Model","Document Object Model","Data Object Map","Display Object Model"] },
+{ q: "94. The method to open a new window in JavaScript is", options: ["new.window()","window.make()","window.open()","document.create()"] },
+{ q: "95. Which popup box allows user input?", options: ["prompt()","alert()","confirm()","input()"] },
+{ q: "96. The loop that runs at least once in JavaScript is", options: ["for","do…while","while","loop"] },
+{ q: "97. Which operator is used to assign a value?", options: ["==",">","=","==="] },
+{ q: "98. JavaScript file is linked in HTML using", options: ["&lt;style&gt;","&lt;link&gt;","&lt;script&gt;","&lt;meta&gt;"] },
+{ q: "99. In JavaScript, NaN stands for", options: ["Not a Number","Negative and Null","New Active Node","Number as Null"] },
+{ q: "100. JavaScript keyword to exit a loop early is", options: ["continue","stop","break","exit"] }
+];
+// ---------------- ANSWER KEY (indices 0..3) ----------------
+const answerKey = [
+/*1-10*/ 2,2,3,1,3,1,1,2,2,1,
+/*11-20*/ 2,1,2,1,1,3,1,0,2,2,
+/*21-30*/ 1,2,3,1,1,2,1,1,0,2,
+/*31-40*/ 0,0,0,1,1,3,2,2,2,1,
+/*41-50*/ 0,2,3,0,2,0,1,1,0,2,
+/*51-60*/ 1,0,1,1,3,0,0,3,1,0,
+/*61-70*/ 1,0,2,1,2,1,0,1,2,0,
+/*71-80*/ 1,1,1,2,2,1,2,0,2,0,
+/*81-90*/ 0,1,1,1,2,1,2,2,1,1,
+/*91-100*/ 1,1,1,2,0,1,2,2,0,2
+];
+// ---------------- EXAM LOGIC ----------------
+let currentQuestion = 0;
+const userAnswers = new Array(questions.length).fill(null);
+let timerInterval = null;
+function renderCircles(){
+    const nav = document.getElementById("navCircles");
+    nav.innerHTML = "";
+    questions.forEach((_, i) => {
+        const circle = document.createElement("div");
+        circle.classList.add("circle");
+        circle.textContent = i + 1;
+        circle.onclick = () => goToQuestion(i);
+        nav.appendChild(circle);
+    });
+    updateCircles();
+}
+function updateCircles(){
+    const circles = document.querySelectorAll(".circle");
+    circles.forEach((c, i) => {
+        if(userAnswers[i] !== null) c.classList.add("attempted");
+        else c.classList.remove("attempted");
+    });
+}
+function loadQuestion(){
+    const qBox = document.getElementById("questionBox");
+    const q = questions[currentQuestion];
+    qBox.innerHTML = `
+        <p><strong>${q.q}</strong></p>
+        ${q.options.map((opt, i) => `
+            <label><input type="radio" name="option" value="${i}" ${userAnswers[currentQuestion]==i?"checked":""}> ${opt}</label><br>
+        `).join("")}
+    `;
+    document.getElementById("prevBtn").disabled = currentQuestion === 0;
+    document.getElementById("nextBtn").disabled = currentQuestion === questions.length - 1;
+    updateCircles();
+}
+function saveAnswer(){
+    const selected = document.querySelector('input[name="option"]:checked');
+    if(selected) userAnswers[currentQuestion] = parseInt(selected.value);
+    updateCircles();
+}
+function nextQuestion(){ if(submitted) return; saveAnswer(); if(currentQuestion < questions.length-1){ currentQuestion++; loadQuestion(); } }
+function prevQuestion(){ if(submitted) return; saveAnswer(); if(currentQuestion > 0){ currentQuestion--; loadQuestion(); } }
+function goToQuestion(i){ if(submitted) return; saveAnswer(); currentQuestion = i; loadQuestion(); }
+function startTimer(){
+    let timeLeft = 60*60; // 60 min
+    timerInterval = setInterval(()=>{
+        if(submitted){ clearInterval(timerInterval); return; }
+        let min = Math.floor(timeLeft/60);
+        let sec = timeLeft%60;
+        document.getElementById("timer").innerText = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        if(timeLeft-- <= 0) submitExam();
+    }, 1000);
+}
+function submitExam(){
+    if(submitted) return;
+    saveAnswer();
+    submitted = true;
+    clearInterval(timerInterval);
+    // Hide exam page
+    document.getElementById("examPage").style.display = "none";
+    // Show result page
+    document.getElementById("resultPage").style.display = "flex";
+    // Fill result data
+    document.getElementById("resultName").innerText = document.getElementById("studentName").innerText;
+    // Real scoring using answerKey
+    let correctCount = 0;
+    let attempted = 0;
+    for(let i=0;i<questions.length;i++){
+        const ua = userAnswers[i];
+        if(ua !== null) attempted++;
+        if(ua !== null && typeof answerKey[i] !== 'undefined' && ua === answerKey[i]) correctCount++;
+    }
+    const wrongCount = attempted - correctCount;
+    const scorePercent = Math.round((correctCount / questions.length) * 100);
+    document.getElementById("correctCount").innerText = correctCount;
+    document.getElementById("wrongCount").innerText = wrongCount;
+    document.getElementById("scorePercent").innerText = scorePercent;
+}
+</script>
+</body>
+</html>
